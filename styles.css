@@ -191,7 +191,13 @@ section h2 {
     justify-content: space-between;
     cursor: default;
     transition: opacity 0.2s;
-    overflow: hidden;
+    /* overflow:hidden 금지 — 툴팁이 칸 밖에 떠야 해서 글자는 span에서 자름 */
+}
+
+/* 위쪽 칸은 툴팁을 아래로 (컨테이너 밖으로 나가지 않게) */
+.treemap-item.tip-below .treemap-tooltip {
+    bottom: auto;
+    top: calc(100% + 6px);
 }
 
 .treemap-item:hover { opacity: 0.88; }
@@ -233,6 +239,10 @@ section h2 {
     font-size: 11px;
     font-weight: 700;
     color: #fff;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .treemap-legend {

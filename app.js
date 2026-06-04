@@ -347,7 +347,7 @@ const App = {
             const showValue = r.w > 70 && r.h > 44;
             const nameSize = Math.max(10, Math.min(15, minSide / 5.5));
             const valSize = Math.max(9, Math.min(13, minSide / 7));
-            return `<div class="treemap-item" style="left:${r.x.toFixed(1)}px;top:${r.y.toFixed(1)}px;width:${r.w.toFixed(1)}px;height:${r.h.toFixed(1)}px;background:${r.color};">
+            return `<div class="treemap-item${r.y < 46 ? ' tip-below' : ''}" style="left:${r.x.toFixed(1)}px;top:${r.y.toFixed(1)}px;width:${r.w.toFixed(1)}px;height:${r.h.toFixed(1)}px;background:${r.color};">
                 ${showName ? `<span class="treemap-name" style="font-size:${nameSize.toFixed(1)}px">${r.name}</span>` : ''}
                 ${showValue ? `<span class="treemap-value" style="font-size:${valSize.toFixed(1)}px">${this.fmtKorean(r.value)}</span>` : ''}
                 <span class="treemap-tooltip">${r.name}: ${r.value.toLocaleString('ko-KR')}원</span>
