@@ -301,6 +301,21 @@ const App = {
             });
         }
 
+        // 터치/클릭 시 툴팁 잠깐 표시 (작은 칸도 이름·금액 확인 가능, 최초 1회만 등록)
+        if (!this._treemapTipBound) {
+            this._treemapTipBound = true;
+            container.addEventListener('click', (e) => {
+                const item = e.target.closest('.treemap-item');
+                if (!item) return;
+                container.querySelectorAll('.treemap-item.show-tip').forEach(el => {
+                    if (el !== item) el.classList.remove('show-tip');
+                });
+                item.classList.add('show-tip');
+                clearTimeout(this._tipTimer);
+                this._tipTimer = setTimeout(() => item.classList.remove('show-tip'), 2500);
+            });
+        }
+
         if (totalAsset === 0) {
             container.innerHTML = '<p style="text-align:center;color:#999;padding:20px;">데이터 없음</p>';
             return;
