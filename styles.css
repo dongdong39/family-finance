@@ -174,31 +174,24 @@ section h2 {
     max-width: 100%;
 }
 
-/* Treemap */
+/* Treemap (squarified — 면적이 금액에 비례) */
 .treemap {
     margin-bottom: 12px;
+    position: relative;
 }
-
-.treemap-row {
-    display: flex;
-    gap: 3px;
-    margin-bottom: 3px;
-}
-
-.treemap-row:nth-child(1) .treemap-item { min-height: 64px; }
-.treemap-row:nth-child(2) .treemap-item { min-height: 56px; }
-.treemap-row:nth-child(3) .treemap-item { min-height: 46px; }
 
 .treemap-item {
-    border-radius: 6px;
-    padding: 8px 10px;
+    position: absolute;
+    box-sizing: border-box;
+    border: 1.5px solid #fff;
+    border-radius: 4px;
+    padding: 6px 8px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     cursor: default;
     transition: opacity 0.2s;
     overflow: hidden;
-    flex-shrink: 0;
 }
 
 .treemap-item:hover { opacity: 0.88; }
@@ -223,10 +216,6 @@ section h2 {
 
 .treemap-item:hover .treemap-tooltip {
     display: block;
-}
-
-.treemap-item {
-    position: relative;
 }
 
 .treemap-name {

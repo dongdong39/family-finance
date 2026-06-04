@@ -290,6 +290,17 @@ const App = {
         let totalAsset = accounts.reduce((s, a) => s + a.balance, 0);
         document.getElementById('total-asset-value').textContent = this.fmt(totalAsset);
 
+        // 리사이즈 시 다시 그리기 (최초 1회만 등록)
+        this._treemapAccounts = accounts;
+        if (!this._treemapResizeBound) {
+            this._treemapResizeBound = true;
+            let timer;
+            window.addEventListener('resize', () => {
+                clearTimeout(timer);
+                timer = setTimeout(() => this.renderTreemap(this._treemapAccounts || []), 200);
+            });
+        }
+
         if (totalAsset === 0) {
             container.innerHTML = '<p style="text-align:center;color:#999;padding:20px;">데이터 없음</p>';
             return;
@@ -305,45 +316,83 @@ const App = {
             return '#b0b8c1';
         };
 
-        const sorted = [...accounts].filter(a => a.balance > 0).sort((a, b) => b.balance - a.balance);
+        const items = [...accounts]
+            .filter(a => a.balance > 0)
+            .sort((a, b) => b.balance - a.balance)
+            .map(a => ({ name: a.name, value: a.balance, color: colorFor(a.name) }));
 
-        const items = sorted.map(a => ({
-            name: a.name,
-            value: a.balance,
-            color: colorFor(a.name),
-        }));
+        // squarified 트리맵: 면적 = 금액 비례
+        const W = container.clientWidth || 600;
+        const H = 300;
+        const rects = this.squarify(items, W, H);
 
-        // 3행으로 나누기: 큰 것 상단, 작은 것 하단
-        const rows = [[], [], []];
-        // 1행: 상위 3개 (가장 큰 항목)
-        // 2행: 중간 3~4개
-        // 3행: 나머지 작은 항목들
-        const cutoff1 = Math.min(3, items.length);
-        const cutoff2 = Math.min(cutoff1 + 3, items.length);
-        for (let i = 0; i < items.length; i++) {
-            if (i < cutoff1) rows[0].push(items[i]);
-            else if (i < cutoff2) rows[1].push(items[i]);
-            else rows[2].push(items[i]);
-        }
+        container.innerHTML = rects.map(r => {
+            const minSide = Math.min(r.w, r.h);
+            const showName = r.w > 44 && r.h > 24;
+            const showValue = r.w > 70 && r.h > 44;
+            const nameSize = Math.max(10, Math.min(15, minSide / 5.5));
+            const valSize = Math.max(9, Math.min(13, minSide / 7));
+            return `<div class="treemap-item" style="left:${r.x.toFixed(1)}px;top:${r.y.toFixed(1)}px;width:${r.w.toFixed(1)}px;height:${r.h.toFixed(1)}px;background:${r.color};">
+                ${showName ? `<span class="treemap-name" style="font-size:${nameSize.toFixed(1)}px">${r.name}</span>` : ''}
+                ${showValue ? `<span class="treemap-value" style="font-size:${valSize.toFixed(1)}px">${this.fmtKorean(r.value)}</span>` : ''}
+                <span class="treemap-tooltip">${r.name}: ${r.value.toLocaleString('ko-KR')}원</span>
+            </div>`;
+        }).join('');
+        container.style.height = H + 'px';
+    },
 
-        const renderRow = (row) => {
-            if (row.length === 0) return '';
-            const rowTotal = row.reduce((s, i) => s + i.value, 0);
-            const cells = row.map(item => {
-                const pct = (item.value / rowTotal) * 100;
-                const widthPct = Math.max(pct, 15); // 최소 15%
-                const balText = item.value.toLocaleString('ko-KR') + '원';
-                const fullAmount = item.value.toLocaleString('ko-KR') + '원';
-                return `<div class="treemap-item" style="flex:${Math.max(pct, 15)};background:${item.color};">
-                    <span class="treemap-name">${item.name}</span>
-                    <span class="treemap-value">${balText}</span>
-                    <span class="treemap-tooltip">${item.name}: ${fullAmount}</span>
-                </div>`;
-            }).join('');
-            return `<div class="treemap-row">${cells}</div>`;
+    // squarified treemap 알고리즘 (Bruls et al.) — 정사각형에 가까운 분할
+    squarify(items, W, H) {
+        const total = items.reduce((s, i) => s + i.value, 0);
+        const scale = (W * H) / total;
+        const data = items.map(it => ({ ...it, area: it.value * scale }));
+        const result = [];
+        let x = 0, y = 0, w = W, h = H;
+        let row = [];
+
+        const worst = (row, length) => {
+            const sum = row.reduce((s, r) => s + r.area, 0);
+            const max = Math.max(...row.map(r => r.area));
+            const min = Math.min(...row.map(r => r.area));
+            return Math.max((length * length * max) / (sum * sum), (sum * sum) / (length * length * min));
         };
 
-        container.innerHTML = rows.map(r => renderRow(r)).join('');
+        const layoutRow = (row) => {
+            const sum = row.reduce((s, r) => s + r.area, 0);
+            if (w >= h) {
+                // 세로 막대로 배치 (왼쪽부터)
+                const rw = sum / h;
+                let ry = y;
+                for (const r of row) {
+                    const rh = r.area / rw;
+                    result.push({ ...r, x, y: ry, w: rw, h: rh });
+                    ry += rh;
+                }
+                x += rw; w -= rw;
+            } else {
+                // 가로 막대로 배치 (위부터)
+                const rh = sum / w;
+                let rx = x;
+                for (const r of row) {
+                    const rw = r.area / rh;
+                    result.push({ ...r, x: rx, y, w: rw, h: rh });
+                    rx += rw;
+                }
+                y += rh; h -= rh;
+            }
+        };
+
+        for (let i = 0; i < data.length; i++) {
+            const length = Math.min(w, h);
+            if (row.length === 0 || worst([...row, data[i]], length) <= worst(row, length)) {
+                row.push(data[i]);
+            } else {
+                layoutRow(row);
+                row = [data[i]];
+            }
+        }
+        if (row.length) layoutRow(row);
+        return result;
     },
 
     buildDetailCompare(actual, budget, type) {
