@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>우리집 가계부</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- 비밀번호 화면 -->
+    <div id="lock-screen" class="lock-screen">
+        <div class="lock-box">
+            <h1>🔐</h1>
+            <p>비밀번호를 입력하세요</p>
+            <input type="password" id="pw-input" placeholder="비밀번호" autocomplete="off">
+            <button onclick="App.unlock()">확인</button>
+            <p id="pw-error" class="error"></p>
+        </div>
+    </div>
+
+    <!-- 메인 대시보드 -->
+    <div id="dashboard" class="dashboard" style="display:none">
+        <header>
+            <h1>💰 우리집 가계부</h1>
+            <div class="header-actions">
+                <select id="month-select" onchange="App.loadMonth(this.value)"></select>
+                <button class="btn-sheet" onclick="App.openSheet()">📝 시트 편집</button>
+            </div>
+        </header>
+
+        <!-- 요약 카드 -->
+        <section class="summary-cards">
+            <div class="card card-income">
+                <p class="card-label">총 수입</p>
+                <p class="card-value" id="total-income">0원</p>
+            </div>
+            <div class="card card-expense">
+                <p class="card-label">총 지출</p>
+                <p class="card-value" id="total-expense">0원</p>
+            </div>
+            <div class="card card-save">
+                <p class="card-label">총 저축</p>
+                <p class="card-value" id="total-save">0원</p>
+            </div>
+            <div class="card card-balance">
+                <p class="card-label">잔여 (수입-지출-저축)</p>
+                <p class="card-value" id="balance">0원</p>
+            </div>
+        </section>
+
+        <!-- 통장별 잔고 (트리맵) -->
+        <section class="account-section">
+            <h2>🏦 자산 현황</h2>
+            <div id="treemap" class="treemap"></div>
+            <div class="treemap-legend">
+                <span class="legend-living">생활자금</span>
+                <span class="legend-invest">투자·저축</span>
+                <span class="legend-etc">기타</span>
+            </div>
+            <div class="account-total">
+                <span>총 자산</span>
+                <span id="total-asset-value">0원</span>
+            </div>
+        </section>
+
+        <!-- 지출 구성 차트 -->
+        <section class="chart-section">
+            <h2>📊 지출 구성</h2>
+            <div class="chart-wrap">
+                <canvas id="expense-chart"></canvas>
+            </div>
+        </section>
+
+        <!-- 이번 달 상세 (아코디언) -->
+        <section class="detail-section">
+            <h2>📋 이번 달 상세</h2>
+            <p class="detail-legend">
+                <span class="legend-over">● 초과</span>
+                <span class="legend-under">● 미달</span>
+                <span class="legend-same">● 동일</span>
+            </p>
+            <div id="detail-accordion"></div>
+        </section>
+
+        <!-- 대출 현황 (시트 '설정' 탭에서 로드) -->
+        <section class="loan-section" id="loan-section" style="display:none">
+            <h2>🏠 대출 현황</h2>
+            <div class="loan-info">
+                <div class="loan-row"><span>대출 원금</span><span id="loan-total">-</span></div>
+                <div class="loan-row"><span>금리</span><span id="loan-rate">-</span></div>
+                <div class="loan-row"><span>상환 방식</span><span id="loan-method">-</span></div>
+                <div class="loan-row"><span>기간</span><span id="loan-period">-</span></div>
+                <div class="loan-row"><span>현재까지 상환</span><span id="loan-paid">-</span></div>
+                <div class="loan-row highlight"><span>남은 잔액</span><span id="loan-remain">-</span></div>
+                <div class="loan-progress">
+                    <div class="loan-progress-bar" id="loan-bar"></div>
+                </div>
+                <p class="loan-pct" id="loan-pct"></p>
+            </div>
+        </section>
+
+        <!-- 목표 (시트 '설정' 탭에서 로드) -->
+        <section class="goal-section" id="goal-section" style="display:none">
+            <h2>🎯 목표</h2>
+            <div id="goal-list"></div>
+        </section>
+
+        <!-- 자산 추이 -->
+        <section class="chart-section">
+            <h2>📈 월별 총 자산 추이</h2>
+            <div class="chart-wrap chart-wide">
+                <canvas id="asset-trend-chart"></canvas>
+            </div>
+        </section>
+
+        <!-- 수입/지출 추이 -->
+        <section class="chart-section">
+            <h2>📊 월별 수입/지출 추이</h2>
+            <div class="chart-wrap chart-wide">
+                <canvas id="trend-chart"></canvas>
+            </div>
+        </section>
+
+        <footer>
+            <p>💕 우리집 가계부 · 비밀번호로 보호됨</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
