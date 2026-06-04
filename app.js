@@ -659,9 +659,9 @@ const App = {
     parseAssetCsv(csv) {
         const rows = this.parseCSVRows(csv);
         if (rows.length < 2) return {};
-        // 헤더: ['타입', '통장명', '2026-06', ...] — 타입 열이 없는 옛 구조도 지원
+        // 헤더: ['자산타입', '통장명', '2026-06', ...] — 타입 열이 없는 옛 구조도 지원
         const header = rows[0];
-        const typeIdx = header.findIndex(h => String(h).trim() === '타입');
+        const typeIdx = header.findIndex(h => String(h).trim().includes('타입'));
         let nameIdx = header.findIndex(h => String(h).trim() === '통장명');
         if (nameIdx === -1) nameIdx = typeIdx === 0 ? 1 : 0;
 
@@ -671,15 +671,23 @@ const App = {
             if (m) monthCols.push({ month: m[0], idx });
         });
 
+        // 타입은 그룹 첫 행에만 적혀 있을 수 있음 → 빈 칸이면 위 행의 타입을 이어받음
+        const types = [];
+        let lastType = '';
+        for (let i = 1; i < rows.length; i++) {
+            const t = typeIdx >= 0 ? String(rows[i][typeIdx] || '').trim() : '';
+            if (t) lastType = t;
+            types[i] = lastType;
+        }
+
         const result = {};
         for (const { month, idx } of monthCols) {
             result[month] = [];
             for (let i = 1; i < rows.length; i++) {
                 const name = rows[i][nameIdx];
-                if (!name) continue;
+                if (!name) continue; // 빈 구분 행은 건너뜀
                 const balance = parseInt(String(rows[i][idx] || '0').replace(/[",\s]/g, '')) || 0;
-                const type = typeIdx >= 0 ? (rows[i][typeIdx] || '') : '';
-                result[month].push({ name, balance, type });
+                result[month].push({ name, balance, type: types[i] });
             }
         }
         return result;
