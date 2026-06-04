@@ -301,40 +301,22 @@ const App = {
             });
         }
 
-        // 터치/클릭 시 툴팁 잠깐 표시 (작은 칸도 이름·금액 확인 가능, 최초 1회만 등록)
-        if (!this._treemapTipBound) {
-            this._treemapTipBound = true;
-            container.addEventListener('click', (e) => {
-                const item = e.target.closest('.treemap-item');
-                if (!item) return;
-                container.querySelectorAll('.treemap-item.show-tip').forEach(el => {
-                    if (el !== item) el.classList.remove('show-tip');
-                });
-                item.classList.add('show-tip');
-                clearTimeout(this._tipTimer);
-                this._tipTimer = setTimeout(() => item.classList.remove('show-tip'), 2500);
-            });
-        }
-
         if (totalAsset === 0) {
             container.innerHTML = '<p style="text-align:center;color:#999;padding:20px;">데이터 없음</p>';
+            document.getElementById('asset-breakdown').innerHTML = '';
             return;
         }
-
-        // 색상 그룹 (시트 '설정' 탭의 계좌 분류 기반)
-        const s = this.settings || {};
-        const livingKeys = String(s['생활자금 계좌'] || '').split(',').map(t => t.trim()).filter(Boolean);
-        const investKeys = String(s['투자저축 계좌'] || '').split(',').map(t => t.trim()).filter(Boolean);
-        const colorFor = (name) => {
-            if (livingKeys.some(k => name.includes(k))) return '#2bbfb3';
-            if (investKeys.some(k => name.includes(k))) return '#f5c542';
-            return '#b0b8c1';
-        };
 
         const items = [...accounts]
             .filter(a => a.balance > 0)
             .sort((a, b) => b.balance - a.balance)
-            .map(a => ({ name: a.name, value: a.balance, color: colorFor(a.name) }));
+            .map(a => {
+                const g = this.accountGroup(a.type);
+                return { name: a.name, value: a.balance, color: g.color, group: g.label };
+            });
+
+        // 총 자산 펼침 — 섹션별 내역
+        this.renderAssetBreakdown(items);
 
         // squarified 트리맵: 면적 = 금액 비례
         const W = container.clientWidth || 600;
@@ -347,13 +329,40 @@ const App = {
             const showValue = r.w > 70 && r.h > 44;
             const nameSize = Math.max(10, Math.min(15, minSide / 5.5));
             const valSize = Math.max(9, Math.min(13, minSide / 7));
-            return `<div class="treemap-item${r.y < 46 ? ' tip-below' : ''}" style="left:${r.x.toFixed(1)}px;top:${r.y.toFixed(1)}px;width:${r.w.toFixed(1)}px;height:${r.h.toFixed(1)}px;background:${r.color};">
+            return `<div class="treemap-item" style="left:${r.x.toFixed(1)}px;top:${r.y.toFixed(1)}px;width:${r.w.toFixed(1)}px;height:${r.h.toFixed(1)}px;background:${r.color};">
                 ${showName ? `<span class="treemap-name" style="font-size:${nameSize.toFixed(1)}px">${r.name}</span>` : ''}
                 ${showValue ? `<span class="treemap-value" style="font-size:${valSize.toFixed(1)}px">${this.fmtKorean(r.value)}</span>` : ''}
-                <span class="treemap-tooltip">${r.name}: ${r.value.toLocaleString('ko-KR')}원</span>
             </div>`;
         }).join('');
         container.style.height = H + 'px';
+    },
+
+    // 계좌 분류 — '자산 현황' 시트의 '타입' 열 기반 (생활자금/투자저축/기타)
+    accountGroup(type) {
+        const t = String(type || '').trim();
+        if (t.includes('생활')) return { label: '생활자금', color: '#2bbfb3' };
+        if (t.includes('투자') || t.includes('저축')) return { label: '투자·저축', color: '#f5c542' };
+        return { label: '기타', color: '#b0b8c1' };
+    },
+
+    renderAssetBreakdown(items) {
+        const el = document.getElementById('asset-breakdown');
+        const order = ['생활자금', '투자·저축', '기타'];
+        const groups = {};
+        for (const it of items) {
+            (groups[it.group] = groups[it.group] || []).push(it);
+        }
+        el.innerHTML = order.filter(g => groups[g]).map(g => {
+            const list = groups[g];
+            const total = list.reduce((s, i) => s + i.value, 0);
+            const rows = list.map(i =>
+                `<div class="breakdown-row"><span>${i.name}</span><span>${this.fmt(i.value)}</span></div>`
+            ).join('');
+            return `<div class="breakdown-group">
+                <div class="breakdown-head"><span><span class="breakdown-dot" style="background:${list[0].color}"></span>${g}</span><span>${this.fmt(total)}</span></div>
+                ${rows}
+            </div>`;
+        }).join('');
     },
 
     // squarified treemap 알고리즘 (Bruls et al.) — 정사각형에 가까운 분할
@@ -650,21 +659,29 @@ const App = {
     parseAssetCsv(csv) {
         const rows = this.parseCSVRows(csv);
         if (rows.length < 2) return {};
-        const header = rows[0]; // ['통장명', '2026-06', '2026-07', ...]
-        const months = header.slice(1).filter(h => h && h.match(/\d{4}-\d{2}/));
-        const result = {};
+        // 헤더: ['타입', '통장명', '2026-06', ...] — 타입 열이 없는 옛 구조도 지원
+        const header = rows[0];
+        const typeIdx = header.findIndex(h => String(h).trim() === '타입');
+        let nameIdx = header.findIndex(h => String(h).trim() === '통장명');
+        if (nameIdx === -1) nameIdx = typeIdx === 0 ? 1 : 0;
 
-        months.forEach((month, mi) => {
-            result[month] = [];
-            for (let i = 1; i < rows.length; i++) {
-                const name = rows[i][0];
-                if (!name) continue;
-                const balStr = rows[i][mi + 1] || '0';
-                const balance = parseInt(String(balStr).replace(/[",\s]/g, '')) || 0;
-                result[month].push({ name, balance });
-            }
+        const monthCols = [];
+        header.forEach((h, idx) => {
+            const m = String(h || '').match(/\d{4}-\d{2}/);
+            if (m) monthCols.push({ month: m[0], idx });
         });
 
+        const result = {};
+        for (const { month, idx } of monthCols) {
+            result[month] = [];
+            for (let i = 1; i < rows.length; i++) {
+                const name = rows[i][nameIdx];
+                if (!name) continue;
+                const balance = parseInt(String(rows[i][idx] || '0').replace(/[",\s]/g, '')) || 0;
+                const type = typeIdx >= 0 ? (rows[i][typeIdx] || '') : '';
+                result[month].push({ name, balance, type });
+            }
+        }
         return result;
     },
 

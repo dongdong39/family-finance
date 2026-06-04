@@ -59,10 +59,13 @@
                 <span class="legend-invest">투자·저축</span>
                 <span class="legend-etc">기타</span>
             </div>
-            <div class="account-total">
-                <span>총 자산</span>
-                <span id="total-asset-value">0원</span>
-            </div>
+            <details class="account-total-fold">
+                <summary class="account-total">
+                    <span>총 자산 <span class="fold-arrow">▾</span></span>
+                    <span id="total-asset-value">0원</span>
+                </summary>
+                <div id="asset-breakdown"></div>
+            </details>
         </section>
 
         <!-- 지출 구성 차트 -->

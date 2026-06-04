@@ -194,36 +194,8 @@ section h2 {
     /* overflow:hidden 금지 — 툴팁이 칸 밖에 떠야 해서 글자는 span에서 자름 */
 }
 
-/* 위쪽 칸은 툴팁을 아래로 (컨테이너 밖으로 나가지 않게) */
-.treemap-item.tip-below .treemap-tooltip {
-    bottom: auto;
-    top: calc(100% + 6px);
-}
 
 .treemap-item:hover { opacity: 0.88; }
-
-.treemap-tooltip {
-    display: none;
-    position: absolute;
-    bottom: calc(100% + 6px);
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(30,30,46,0.95);
-    color: #fff;
-    padding: 8px 12px;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 600;
-    white-space: nowrap;
-    z-index: 10;
-    pointer-events: none;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-
-.treemap-item:hover .treemap-tooltip,
-.treemap-item.show-tip .treemap-tooltip {
-    display: block;
-}
 
 .treemap-name {
     font-size: 11px;
@@ -271,11 +243,46 @@ section h2 {
     display: flex;
     justify-content: space-between;
     padding: 14px;
-    margin-top: 10px;
     background: linear-gradient(135deg, #6C63FF20, #A78BFA20);
     border-radius: 10px;
     font-weight: 700;
     font-size: 16px;
+}
+
+/* 총 자산 펼치기/접기 */
+.account-total-fold { margin-top: 10px; }
+.account-total-fold summary { cursor: pointer; list-style: none; }
+.account-total-fold summary::-webkit-details-marker { display: none; }
+.fold-arrow {
+    display: inline-block;
+    font-size: 12px;
+    color: #888;
+    transition: transform 0.2s;
+}
+.account-total-fold[open] .fold-arrow { transform: rotate(180deg); }
+#asset-breakdown { padding: 2px 14px 12px; }
+.breakdown-group { margin-top: 12px; }
+.breakdown-head {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 700;
+    font-size: 14px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #eee;
+}
+.breakdown-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    margin-right: 6px;
+}
+.breakdown-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: #555;
+    padding: 6px 0 0 16px;
 }
 
 /* Loan */
