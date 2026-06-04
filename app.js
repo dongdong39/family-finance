@@ -301,6 +301,16 @@ const App = {
             });
         }
 
+        // 트리맵 터치 → 총 자산 펼침/접기 토글 (최초 1회만 등록)
+        if (!this._treemapClickBound) {
+            this._treemapClickBound = true;
+            container.style.cursor = 'pointer';
+            container.addEventListener('click', () => {
+                const fold = document.querySelector('.account-total-fold');
+                if (fold) fold.open = !fold.open;
+            });
+        }
+
         if (totalAsset === 0) {
             container.innerHTML = '<p style="text-align:center;color:#999;padding:20px;">데이터 없음</p>';
             document.getElementById('asset-breakdown').innerHTML = '';
